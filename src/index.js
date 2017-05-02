@@ -97,11 +97,20 @@ export function latestValue() {
   return { result, receivedValue }
 }
 
+import root from 'rxjs/util/root'
+
+function buildResolvedPromise(v = null) {
+  if(root.Rx && root.Rx.config && root.Rx.config.Promise)
+    return root.Rx.config.Promise.resolve(v)
+
+  return Promise.resolve(v)
+}
+
 export function reloadInto(subject, fn) {
   const { result, receivedValue } = this::latestValue()
   if(receivedValue) {
     subject.next(fn(result))
-    return when(null)
+    return buildResolvedPromise()
   }
 
   return this::first()::toPromise().then(s => subject.next(fn(s)))
