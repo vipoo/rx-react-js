@@ -38,3 +38,25 @@ export function listen(fn, optional = {}) {
   const subscription = this.subscribe({...optional, next})
   return () => subscription.unsubscribe()
 }
+
+export function withMutations() {
+  return Observable.create(observer => {
+    let captured = undefined
+
+    return this.subscribe({
+      next: v => {
+        if(captured && typeof(v) === 'function') {
+          v(captured)
+          observer.next(captured)
+          return
+        }
+
+        captured = v
+        observer.next(v)
+      },
+      error: err => observer.error(err),
+      complete: () => observer.complete()
+    })
+  })
+
+}
