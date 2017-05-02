@@ -34,10 +34,7 @@ export function shared() {
 }
 
 export function listen(fn, optional = {}) {
-  const subject = new Subject()
-  const obs = this.multicast(subject).refCount()
-
   const next = fn.setState ? s => fn.setState(Object.assign({}, s)) : fn
-  const subscription = obs.subscribe({...optional, next})
+  const subscription = this.subscribe({...optional, next})
   return () => subscription.unsubscribe()
 }

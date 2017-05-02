@@ -46,4 +46,29 @@ describe('rx_operators', () => {
     expect(sideEffects).to.deep.equal([ 'a', '1-a', '2-a', 'b', '1-b', '2-b'])
   })
 
+  it('listen to subscribing function', () => {
+    const sub = new Subject()
+
+    const result = []
+    const unsub = sub::listen(x => result.push(x))
+    sub.next(1)
+    sub.next(2)
+    unsub()
+
+    expect(result).to.deep.equal([1, 2])
+  })
+
+  it('listen to react component', () => {
+    const sub = new Subject()
+
+    const result = []
+    const comp = { setState: x => result.push(x) }
+    const unsub = sub::listen(comp)
+    sub.next({a: 1})
+    sub.next({a: 2})
+    unsub()
+
+    expect(result).to.deep.equal([{a: 1}, {a: 2}])
+  })
+
 })
