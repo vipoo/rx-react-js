@@ -1,7 +1,6 @@
-import { replayLastValue, shared, listen, withMutations, filterSet } from './../lib/index'
+import { replayLastValue, shared, listen, withMutations, filterSet, latestValue } from './../lib/index'
 import { Subject } from 'rxjs/Subject'
-
-import 'rxjs/add/operator/do'
+import { _do } from 'rxjs/operator/do'
 
 function collect(observer, store) {
   store.length = 0
@@ -32,7 +31,7 @@ describe('rx_operators', () => {
 
     const sideEffects = []
 
-    const obs = sub.do(x => sideEffects.push(x))::shared()
+    const obs = sub::_do(x => sideEffects.push(x))::shared()
 
     const sub1 = obs::listen(x => sideEffects.push('1-' + x))
     const sub2 = obs::listen(x => sideEffects.push('2-' + x))
@@ -97,6 +96,17 @@ describe('rx_operators', () => {
     unsub()
 
     expect(result).to.deep.equal([1, 2, 3])
+  })
+
+  it('latestValue', () => {
+    const sub = new Subject()
+    const source = sub::replayLastValue()
+
+    expect(source::latestValue()).to.deep.equal({ result: undefined, receivedValue: false })
+
+    sub.next(87)
+
+    expect(source::latestValue()).to.deep.equal({ result: 87, receivedValue: true })
   })
 
 })

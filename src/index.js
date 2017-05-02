@@ -1,6 +1,7 @@
 import {Observable} from 'rxjs/Observable'
 import {Subject} from 'rxjs/Subject'
-import 'rxjs/add/operator/multicast'
+import { multicast } from 'rxjs/operator/multicast'
+import { first } from 'rxjs/operator/first'
 
 function nullFunction() {
 }
@@ -30,7 +31,7 @@ export function replayLastValue() {
 export function shared() {
   const singleSubject = new Subject()
 
-  return this.multicast(singleSubject).refCount()
+  return this::multicast(singleSubject).refCount()
 }
 
 export function listen(fn, optional = {}) {
@@ -82,4 +83,15 @@ export function filterSet(fn) {
       complete: () => observer.complete()
     })
   })
+}
+
+export function latestValue() {
+  let result = undefined
+  let receivedValue = false
+  const subscription = this::first().subscribe({next: s => {
+    receivedValue = true
+    result = s
+  }})
+  subscription.unsubscribe()
+  return { result, receivedValue }
 }
