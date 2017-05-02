@@ -1,4 +1,4 @@
-import { replayLastValue, shared, listen, withMutations, filterSet, latestValue } from './../lib/index'
+import { replayLastValue, shared, listen, withMutations, filterSet, latestValue, reloadInto } from './../lib/index'
 import { Subject } from 'rxjs/Subject'
 import { _do } from 'rxjs/operator/do'
 
@@ -107,6 +107,27 @@ describe('rx_operators', () => {
     sub.next(87)
 
     expect(source::latestValue()).to.deep.equal({ result: 87, receivedValue: true })
+  })
+
+  it('reloadInto', () => {
+    const sourceSubject = new Subject()
+    const sourceObserver = sourceSubject
+
+    const destinationSubject = new Subject()
+    const destinationObserver = destinationSubject
+
+    const result = []
+
+    const destinationSubscription = destinationObserver::listen(x => result.push(x))
+
+    const test = sourceObserver
+      ::reloadInto(destinationSubject, x => x * 10)
+      .then(() => expect(result).to.deep.equal([20]))
+      .then(() => destinationSubscription())
+
+    sourceSubject.next(2)
+
+    return test
   })
 
 })

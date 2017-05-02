@@ -2,6 +2,7 @@ import {Observable} from 'rxjs/Observable'
 import {Subject} from 'rxjs/Subject'
 import { multicast } from 'rxjs/operator/multicast'
 import { first } from 'rxjs/operator/first'
+import { toPromise } from 'rxjs/operator/toPromise'
 
 function nullFunction() {
 }
@@ -94,4 +95,14 @@ export function latestValue() {
   }})
   subscription.unsubscribe()
   return { result, receivedValue }
+}
+
+export function reloadInto(subject, fn) {
+  const { result, receivedValue } = this::latestValue()
+  if(receivedValue) {
+    subject.next(fn(result))
+    return when(null)
+  }
+
+  return this::first()::toPromise().then(s => subject.next(fn(s)))
 }
