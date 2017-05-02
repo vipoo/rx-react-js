@@ -1,5 +1,6 @@
 import {Observable} from 'rxjs/Observable'
 import {Subject} from 'rxjs/Subject'
+import 'rxjs/add/operator/multicast'
 
 function nullFunction() {
 }
@@ -26,3 +27,17 @@ export function replayLastValue() {
   return observable
 }
 
+export function shared() {
+  const singleSubject = new Subject()
+
+  return this.multicast(singleSubject).refCount()
+}
+
+export function listen(fn, optional = {}) {
+  const subject = new Subject()
+  const obs = this.multicast(subject).refCount()
+
+  const next = fn.setState ? s => fn.setState(Object.assign({}, s)) : fn
+  const subscription = obs.subscribe({...optional, next})
+  return () => subscription.unsubscribe()
+}

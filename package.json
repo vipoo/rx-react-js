@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "compile": "babel -d lib/ src/",
-    "test": "mocha --compilers js:babel-core/register -r ./test/helper.js",
+    "test": "yarn compile && mocha --compilers js:babel-core/register -r ./test/helper.js",
     "lint": "eslint src test",
     "prepublish": "yarn compile"
   },
@@ -22,7 +22,8 @@
     "eslint": "^3.19.0",
     "chai": "^3.5.0",
     "eslint-config-google": "^0.7.1",
-    "mocha": "^3.3.0"
+    "mocha": "^3.3.0",
+    "rxjs": "^5.3.0"
   },
   "peerDependencies": {
     "rxjs": "^5.3.0"
