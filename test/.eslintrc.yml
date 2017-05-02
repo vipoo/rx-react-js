@@ -1,0 +1,13 @@
+globals:
+  GLOBAL: false
+  describe: false
+  it: false
+  xit: false
+  beforeEach: false
+  beforeAll: false
+  expect: false
+  afterEach: false
+  Fixtures: true
+  before: false
+  xdescribe: false
+  after: false
