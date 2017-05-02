@@ -58,5 +58,28 @@ export function withMutations() {
       complete: () => observer.complete()
     })
   })
+}
 
+export function filterSet(fn) {
+  return Observable.create(observer => {
+    let captured = undefined
+
+    return this.subscribe({
+      next: v => {
+        if(!captured) {
+          captured = v
+          observer.next(v)
+          return
+        }
+
+        if(fn(captured, v)) {
+          captured = v
+          observer.next(v)
+        }
+
+      },
+      error: err => observer.error(err),
+      complete: () => observer.complete()
+    })
+  })
 }

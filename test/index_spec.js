@@ -1,4 +1,4 @@
-import { replayLastValue, shared, listen, withMutations } from './../lib/index'
+import { replayLastValue, shared, listen, withMutations, filterSet } from './../lib/index'
 import { Subject } from 'rxjs/Subject'
 
 import 'rxjs/add/operator/do'
@@ -82,6 +82,21 @@ describe('rx_operators', () => {
     unsub.unsubscribe()
 
     expect(result).to.deep.equal([{a: 1}, {a: 1, b: 2}])
+  })
+
+  it('filterSet', () => {
+    const sub = new Subject()
+    const souceReplayed = sub::filterSet((a, b) => (a+1) === b)
+
+    const result = []
+    const unsub = collect(souceReplayed, result)
+    sub.next(1)
+    sub.next(2)
+    sub.next(4)
+    sub.next(3)
+    unsub()
+
+    expect(result).to.deep.equal([1, 2, 3])
   })
 
 })
