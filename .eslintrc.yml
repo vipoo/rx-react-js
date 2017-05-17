@@ -1,6 +1,8 @@
 env:
   browser: true
   es6: true
+plugins:
+parser: babel-eslint
 extends:
   - 'eslint:recommended'
   - google
@@ -21,3 +23,15 @@ rules:
   semi:
     - error
     - never
+  arrow-parens:
+    - 0
+    - as-needed
+  max-len:
+    - 0
+    - 160
+    - 2
+  comma-dangle:
+    - 0
+  no-invalid-this:
+    - 0
+

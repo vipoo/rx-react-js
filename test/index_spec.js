@@ -1,6 +1,9 @@
-import { replayLastValue, shared, listen, withMutations, filterSet, latestValue, reloadInto } from './../lib/index'
-import { Subject } from 'rxjs/Subject'
-import { _do } from 'rxjs/operator/do'
+import {replayLastValue, shared, listen,
+         withMutations, filterSet, latestValue, reloadInto,
+         immediateThrottlePromise} from './../lib/index'
+import {Subject} from 'rxjs/Subject'
+import {_do} from 'rxjs/operator/do'
+import when from 'when'
 
 function collect(observer, store) {
   store.length = 0
@@ -8,8 +11,19 @@ function collect(observer, store) {
   return () => unsub.unsubscribe()
 }
 
-describe('rx_operators', () => {
+function collectPromise(observer, expectedLastValue, store = []) {
+  return new Promise((res) => {
+    const unsub = observer.subscribe(x => {
+      store.push(x)
+      if(x === expectedLastValue) {
+        unsub.unsubscribe()
+        res(store)
+      }
+    })
+  })
+}
 
+describe('rx_operators', () => {
   it('replayLastValue', () => {
     const sub = new Subject()
     const souceReplayed = sub::replayLastValue()
@@ -42,7 +56,7 @@ describe('rx_operators', () => {
     sub1()
     sub2()
 
-    expect(sideEffects).to.deep.equal([ 'a', '1-a', '2-a', 'b', '1-b', '2-b'])
+    expect(sideEffects).to.deep.equal(['a', '1-a', '2-a', 'b', '1-b', '2-b'])
   })
 
   it('listen to subscribing function', () => {
@@ -61,7 +75,7 @@ describe('rx_operators', () => {
     const sub = new Subject()
 
     const result = []
-    const comp = { setState: x => result.push(x) }
+    const comp = {setState: x => result.push(x)}
     const unsub = sub::listen(comp)
     sub.next({a: 1})
     sub.next({a: 2})
@@ -102,11 +116,11 @@ describe('rx_operators', () => {
     const sub = new Subject()
     const source = sub::replayLastValue()
 
-    expect(source::latestValue()).to.deep.equal({ result: undefined, receivedValue: false })
+    expect(source::latestValue()).to.deep.equal({result: undefined, receivedValue: false})
 
     sub.next(87)
 
-    expect(source::latestValue()).to.deep.equal({ result: 87, receivedValue: true })
+    expect(source::latestValue()).to.deep.equal({result: 87, receivedValue: true})
   })
 
   it('reloadInto', () => {
@@ -130,4 +144,63 @@ describe('rx_operators', () => {
     return test
   })
 
+  describe('immediateThrottlePromise', () => {
+    it('passes result of resolved promise', () => {
+      const p = when(12)
+      const sub = new Subject()
+      const souceReplayed = sub::immediateThrottlePromise(() => p, 500)
+      const resultPromise = collectPromise(souceReplayed, 12)
+      sub.next(1)
+
+      return expect(resultPromise).to.eventually.deep.equal([12])
+    })
+
+    it('throttles 2nd emitted data', () => {
+      const p = x => when(x)
+      const sub = new Subject()
+      const souceReplayed = sub::immediateThrottlePromise(x => p(x * 10), 300)
+
+      const result = []
+      const unsub = collect(souceReplayed, result)
+      sub.next(1)
+      sub.next(1)
+
+      return when(null)
+        .delay(80)
+        .then(() => expect(result).to.deep.equal([10]))
+        .finally(() => unsub())
+    })
+
+    it('after period, emit throttled value', () => {
+      const p = x => when(x * 10)
+      const sub = new Subject()
+      const souceReplayed = sub::immediateThrottlePromise(x => p(x), 20)
+
+      const resultPromise = collectPromise(souceReplayed, 20)
+      sub.next(1)
+      sub.next(2)
+
+      return expect(resultPromise).to.eventually.deep.equal([10, 20])
+    })
+
+    it('throttle period is from point when promise is resolved', () => {
+      const sub = new Subject()
+      const promisePeriod = 40
+      const delayPeriod = 10
+      const result = []
+      const p = x => {
+        result.push('promiseStart-' + x)
+        return when('promiseResolved-' + x).delay(promisePeriod)
+      }
+
+      const souceReplayed = sub::immediateThrottlePromise(x => p(x), delayPeriod)
+      const resultPromise = collectPromise(souceReplayed, 'promiseResolved-2', result)
+      sub.next(1)
+      sub.next(2)
+
+      return expect(resultPromise).to.eventually.deep.equal([
+        'promiseStart-1', 'promiseResolved-1',
+        'promiseStart-2', 'promiseResolved-2'])
+    })
+  })
 })

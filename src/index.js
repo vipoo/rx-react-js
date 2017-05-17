@@ -1,8 +1,8 @@
 import {Observable} from 'rxjs/Observable'
 import {Subject} from 'rxjs/Subject'
-import { multicast } from 'rxjs/operator/multicast'
-import { first } from 'rxjs/operator/first'
-import { toPromise } from 'rxjs/operator/toPromise'
+import {multicast} from 'rxjs/operator/multicast'
+import {first} from 'rxjs/operator/first'
+import {toPromise} from 'rxjs/operator/toPromise'
 
 function nullFunction() {
 }
@@ -78,7 +78,6 @@ export function filterSet(fn) {
           captured = v
           observer.next(v)
         }
-
       },
       error: err => observer.error(err),
       complete: () => observer.complete()
@@ -94,7 +93,7 @@ export function latestValue() {
     result = s
   }})
   subscription.unsubscribe()
-  return { result, receivedValue }
+  return {result, receivedValue}
 }
 
 import root from 'rxjs/util/root'
@@ -107,11 +106,81 @@ function buildResolvedPromise(v = null) {
 }
 
 export function reloadInto(subject, fn) {
-  const { result, receivedValue } = this::latestValue()
+  const {result, receivedValue} = this::latestValue()
   if(receivedValue) {
     subject.next(fn(result))
     return buildResolvedPromise()
   }
 
   return this::first()::toPromise().then(s => subject.next(fn(s)))
+}
+
+export function immediateThrottlePromise(fnPromise, period) {
+  return Observable.create(observer => {
+    let captured = undefined
+    let subscribed = true
+    let waitingForPromise = false
+    let timer = null
+    let requestAgainAfterPeriod = false
+
+    function delayEmit() {
+      if(!subscribed)
+        return
+      timer = setTimeout(() => {
+        if(requestAgainAfterPeriod)
+          emit()
+        requestAgainAfterPeriod = false
+        clearTimeout(timer)
+        timer = null
+      }, period)
+    }
+
+    function emit() {
+      if(!subscribed)
+        return
+      waitingForPromise = true
+      fnPromise(captured)
+        .then(data => subscribed ? observer.next(data) : null)
+        .catch(err => {
+          clearTimeout(timer)
+          timer = null
+          if(subscribed)
+            observer.error(err)
+        })
+        .tap(() => delayEmit())
+        .finally(() => waitingForPromise = false)
+    }
+
+    const x = this.subscribe({
+      next: v => {
+        captured = v
+        if(!waitingForPromise && !timer) {
+          emit()
+          return
+        }
+
+        if(waitingForPromise || timer) {
+          requestAgainAfterPeriod = true
+          return
+        }
+      },
+      error: err => {
+        clearTimeout(timer)
+        return observer.error(err)
+      },
+      complete: () => {
+        clearTimeout(timer)
+        return observer.complete()
+      }
+    })
+
+    const unsubscribe = x.unsubscribe
+    x.unsubscribe = function() {
+      clearTimeout(timer)
+      subscribed = false
+      return unsubscribe.bind(x)()
+    }
+
+    return x
+  })
 }
