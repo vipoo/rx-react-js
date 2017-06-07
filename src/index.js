@@ -7,7 +7,7 @@ import {toPromise} from 'rxjs/operator/toPromise'
 function nullFunction() {
 }
 
-export function replayLastValue() {
+export function replayLastValue(autoSubscription = true) {
   let captured = undefined
 
   const observable = Observable.create(observer => {
@@ -24,7 +24,8 @@ export function replayLastValue() {
     })
   })
 
-  observable.subscribe({next: nullFunction})
+  if(autoSubscription)
+    observable.subscribe({next: nullFunction})
 
   return observable
 }
@@ -184,7 +185,7 @@ export function immediateThrottlePromise(fnPromise, period) {
     x.unsubscribe = function() {
       clearTimeout(timer)
       subscribed = false
-      return unsubscribe.bind(x)()
+      return unsubscribe.call(x)
     }
 
     return x
