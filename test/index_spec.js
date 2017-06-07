@@ -71,6 +71,19 @@ describe('rx_operators', () => {
     expect(result).to.deep.equal([1, 2])
   })
 
+  it.only('listen handles errors', () => {
+    const sub = new Subject()
+
+    const result = []
+    const errorResult = []
+    const unsub = sub::listen(x => result.push(x), {error: x => errorResult.push(x)})
+    sub.error('Something wrong')
+    unsub()
+
+    expect(result).to.deep.equal([])
+    expect(errorResult).to.deep.equal(['Something wrong'])
+  })
+
   it('listen to react component', () => {
     const sub = new Subject()
 

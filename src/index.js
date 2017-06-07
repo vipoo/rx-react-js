@@ -37,7 +37,13 @@ export function shared() {
 
 export function listen(fn, optional = {}) {
   const next = fn.setState ? s => fn.setState(Object.assign({}, s)) : fn
-  const subscription = this.subscribe({...optional, next})
+  const subscription = this.subscribe({
+    error: e => {
+      console.warn('Error') // eslint-disable-line no-console
+      console.warn(JSON.stringify(e)) // eslint-disable-line no-console
+    },
+    ...optional,
+    next})
   return () => subscription.unsubscribe()
 }
 
