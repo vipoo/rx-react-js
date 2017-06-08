@@ -71,7 +71,7 @@ describe('rx_operators', () => {
     expect(result).to.deep.equal([1, 2])
   })
 
-  it.only('listen handles errors', () => {
+  it('listen handles errors', () => {
     const sub = new Subject()
 
     const result = []
