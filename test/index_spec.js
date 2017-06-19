@@ -215,5 +215,22 @@ describe('rx_operators', () => {
         'promiseStart-1', 'promiseResolved-1',
         'promiseStart-2', 'promiseResolved-2'])
     })
+
+    it('reset throttle period when key changes (and aborts previous promise)', () => {
+      const p = x => when(x)
+      const sub = new Subject()
+      const keyTest = x => x
+      const souceReplayed = sub::immediateThrottlePromise(x => p(x * 10), 300, keyTest)
+
+      const result = []
+      const unsub = collect(souceReplayed, result)
+      sub.next(1)
+      sub.next(2)
+
+      return when(null)
+        .delay(10)
+        .then(() => expect(result).to.deep.equal([20]))
+        .finally(() => unsub())
+    })
   })
 })

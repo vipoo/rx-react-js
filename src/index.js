@@ -116,47 +116,61 @@ export function reloadInto(subject, fn) {
   return this::first()::toPromise().then(s => subject.next(fn(s)))
 }
 
-export function immediateThrottlePromise(fnPromise, period) {
+export function immediateThrottlePromise(fnPromise, period, keyFn = () => false) {
   return Observable.create(observer => {
     let captured = undefined
     let subscribed = true
     let waitingForPromise = false
     let timer = null
     let requestAgainAfterPeriod = false
+    let lastKey = false
 
-    function delayEmit() {
+    function delayEmit(emitKey) {
       if(!subscribed)
         return
       timer = setTimeout(() => {
         if(requestAgainAfterPeriod)
-          emit()
+          emit(emitKey)
         requestAgainAfterPeriod = false
         clearTimeout(timer)
         timer = null
       }, period)
     }
 
-    function emit() {
+    function emit(emitKey) {
       if(!subscribed)
         return
       waitingForPromise = true
       fnPromise(captured)
-        .then(data => subscribed ? observer.next(data) : null)
+        .then(data => subscribed && emitKey == lastKey ? observer.next(data) : null)
         .catch(err => {
           clearTimeout(timer)
           timer = null
           if(subscribed)
             observer.error(err)
         })
-        .tap(() => delayEmit())
-        .finally(() => waitingForPromise = false)
+        .tap(() => emitKey == lastKey ? delayEmit(emitKey) : null)
+        .finally(() => {
+          if(emitKey == lastKey)
+            waitingForPromise = false
+        })
     }
 
     const x = this.subscribe({
       next: v => {
         captured = v
+        const newLastKey = keyFn(v)
+
+        if(newLastKey !== lastKey) {
+          clearTimeout(timer)
+          lastKey = newLastKey
+          waitingForPromise = false
+          emit(lastKey)
+          return
+        }
+
         if(!waitingForPromise && !timer) {
-          emit()
+          emit(lastKey)
           return
         }
 
