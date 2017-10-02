@@ -199,3 +199,7 @@ export function immediateThrottlePromise(fnPromise, period, keyFn = () => false)
     return x
   })
 }
+
+export function memoriseLastValue(autoSubscription = true) {
+  return this::shared()::replayLastValue(autoSubscription)
+}
